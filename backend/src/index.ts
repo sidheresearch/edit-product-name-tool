@@ -19,6 +19,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
   'http://localhost:3003',
   'https://meghamam-2.onrender.com',
   'https://meghamam-frontend.onrender.com',
+  'https://edit-product-name-tool.onrender.com',
   'https://sidheresearch.github.io'
 ];
 

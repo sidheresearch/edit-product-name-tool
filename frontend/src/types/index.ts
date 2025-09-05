@@ -1,10 +1,13 @@
 // Optimized interface for list view - only includes fields returned by API
 export interface ProductIcegateImportListItem {
   system_id: number
+  reg_date: string
+  month_year: string
   hs_code: number | null
   unique_product_name: string | null
   true_importer_name: string | null
   product_name: string | null
+  _uniqueIndex?: string // Added for unique row identification in UI
 }
 
 // Full interface for complete product import data (for updates, etc.)

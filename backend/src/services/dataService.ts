@@ -124,6 +124,8 @@ export class DataService {
         orderBy,
         select: {
           system_id: true,
+          reg_date: true,
+          month_year: true,
           hs_code: true,
           unique_product_name: true,
           true_importer_name: true,

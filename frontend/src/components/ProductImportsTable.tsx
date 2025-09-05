@@ -50,8 +50,19 @@ const ProductImportsTable: React.FC = () => {
   const { data: stats } = useTableStats()
   const updateMutation = useUpdateRecord()
 
-  // Extract data with proper typing
-  const tableData = (queryResponse as PaginatedResponse<ProductIcegateImportListItem>) || { data: [], totalCount: 0 }
+  // Extract data with proper typing and add unique index
+  const tableData = useMemo(() => {
+    const rawData = (queryResponse as PaginatedResponse<ProductIcegateImportListItem>) || { data: [], totalCount: 0 }
+    // Add a unique index to each row to ensure unique keys
+    const dataWithIndex = rawData.data.map((item, index) => ({
+      ...item,
+      _uniqueIndex: `${page}_${index}` // Include page to ensure uniqueness across pages
+    }))
+    return {
+      ...rawData,
+      data: dataWithIndex
+    }
+  }, [queryResponse, page])
 
   // Debug logging
   console.log('Query Response:', queryResponse)
@@ -92,15 +103,20 @@ const ProductImportsTable: React.FC = () => {
 
     // Use the editValue state instead of trying to read from ref
     const currentValue = editValue.trim()
+    
+    // Extract system_id from the composite key (format: system_id_reg_date_month_year_hs_code_uniqueIndex)
+    const systemId = editingCell.id.split('_')[0]
+    
     console.log('Saving:', { 
-      id: editingCell.id, 
+      compositeId: editingCell.id,
+      systemId: systemId,
       field: editingCell.field, 
       value: currentValue 
     })
 
     try {
       const result = await updateMutation.mutateAsync({
-        id: editingCell.id,
+        id: systemId, // Use system_id for the API call
         field: 'unique_product_name', 
         value: currentValue || null
       })
@@ -152,6 +168,37 @@ const ProductImportsTable: React.FC = () => {
       headerName: 'System ID',
       width: 120,
       sortable: true,
+      renderCell: (params) => {
+        const matchingCount = tableData.data.filter(row => row.system_id === params.value).length
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <span>{params.value}</span>
+            {matchingCount > 1 && (
+              <Tooltip title={`${matchingCount} records with this System ID`}>
+                <Typography variant="caption" sx={{ 
+                  backgroundColor: 'warning.light', 
+                  color: 'warning.contrastText',
+                  px: 0.5, 
+                  borderRadius: 0.5,
+                  fontSize: '0.7rem'
+                }}>
+                  ×{matchingCount}
+                </Typography>
+              </Tooltip>
+            )}
+          </Box>
+        )
+      }
+    },
+    {
+      field: 'reg_date',
+      headerName: 'Reg Date',
+      width: 120,
+      sortable: true,
+      valueFormatter: (params) => {
+        if (!params.value) return '-'
+        return new Date(params.value).toLocaleDateString()
+      }
     },
     {
       field: 'hs_code',
@@ -244,7 +291,15 @@ const ProductImportsTable: React.FC = () => {
             }}
             onClick={() => handleCellEditStart(String(params.id), 'unique_product_name', params.value)}
           >
-            <Tooltip title="Click to edit" placement="top">
+            <Tooltip title={
+              (() => {
+                const systemId = String(params.id).split('_')[0]
+                const matchingCount = tableData.data.filter(row => row.system_id.toString() === systemId).length
+                return matchingCount > 1 
+                  ? `Click to edit (will update ${matchingCount} records with same System ID)` 
+                  : "Click to edit"
+              })()
+            } placement="top">
               <Typography variant="body2" sx={{ 
                 overflow: 'hidden', 
                 textOverflow: 'ellipsis',
@@ -283,6 +338,8 @@ const ProductImportsTable: React.FC = () => {
 
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Showing only records with empty product names that need editing. Click on any "Unique Product Name" cell to edit.
+        <br />
+        <strong>Note:</strong> Editing a product name will update ALL records with the same System ID (shown with ×N indicator).
       </Typography>
 
       {/* Statistics */}
@@ -358,10 +415,21 @@ const ProductImportsTable: React.FC = () => {
           pageSizeOptions={[25, 50, 100]}
           disableRowSelectionOnClick
           disableColumnMenu={false}
-          getRowId={(row) => row.system_id}
+          getRowId={(row) => `${row.system_id}_${row.reg_date}_${row.month_year}_${row.hs_code}_${row._uniqueIndex}`}
+          getRowClassName={(params) => {
+            if (editingCell) {
+              const editingSystemId = editingCell.id.split('_')[0]
+              const currentSystemId = params.row.system_id.toString()
+              return editingSystemId === currentSystemId ? 'editing-related-row' : ''
+            }
+            return ''
+          }}
           sx={{
             '& .MuiDataGrid-row:hover .edit-button': {
               opacity: 1,
+            },
+            '& .editing-related-row': {
+              backgroundColor: 'rgba(25, 118, 210, 0.08)',
             },
           }}
         />

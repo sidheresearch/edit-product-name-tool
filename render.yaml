@@ -9,7 +9,7 @@ services:
     staticPublishPath: ./frontend/build
     envVars:
       - key: VITE_API_URL
-        value: https://meghamam-2.onrender.com/api
+        value: https://edit-product-name-tool.onrender.com/api
 
   - type: web
     name: meghamam-backend
