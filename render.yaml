@@ -1,0 +1,27 @@
+# Render.com deployment configuration
+# Create this file as render.yaml in your repository root
+
+services:
+  - type: web
+    name: meghamam-frontend
+    env: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/build
+    envVars:
+      - key: VITE_API_URL
+        value: https://meghamam-2.onrender.com/api
+
+  - type: web
+    name: meghamam-backend
+    env: node
+    buildCommand: cd backend && npm install && npm run build
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        fromDatabase:
+          name: crystal-analytics-db
+          property: connectionString

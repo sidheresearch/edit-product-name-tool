@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["public", "analytics"]
+}
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model benchmark_data {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model uce_pl_mtm_daily {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model user_input_config {
+// }
+
+enum party_role {
+  petitioner
+  respondent
+  
+  @@schema("public")
+}
+
+model ProductIcegateImport {
+  system_id            Int       @map("system_id")
+  reg_date             DateTime  @map("reg_date") @db.Date
+  month_year           String    @map("month_year")
+  hs_code              Int       @map("hs_code")
+  chapter              Int?      @map("chapter")
+  unique_product_name  String?   @map("unique_product_name")
+  quantity             Float?    @map("quantity") @db.Real
+  unit_quantity        String?   @map("unit_quantity")
+  unit_price_usd       Float?    @map("unit_price_usd") @db.Real
+  total_value_usd      Float?    @map("total_value_usd") @db.Real
+  importer_id          String?   @map("importer_id")
+  true_importer_name   String?   @map("true_importer_name")
+  city                 String?   @map("city")
+  cha_number           String?   @map("cha_number")
+  type                 String?   @map("type")
+  true_supplier_name   String?   @map("true_supplier_name")
+  indian_port          String?   @map("indian_port")
+  foreign_port         String?   @map("foreign_port")
+  origin_country       String?   @map("origin_country")
+  exchange_rate_usd    Float?    @map("exchange_rate_usd") @db.Real
+  duty                 Float?    @map("duty") @db.Real
+  product_name         String?   @map("product_name")
+  supplier_name        String?   @map("supplier_name")
+  supplier_address     String?   @map("supplier_address")
+  target_date          DateTime? @map("target_date") @default(now()) @db.Timestamp(6)
+  id                   String?   @map("id")
+  importer             String?   @map("importer")
+
+  @@id([system_id, reg_date, month_year, hs_code])
+  @@unique([system_id, reg_date, month_year, hs_code, chapter, unique_product_name, quantity, unit_quantity, unit_price_usd, total_value_usd, importer_id, true_importer_name, city, cha_number, type, true_supplier_name, indian_port, foreign_port, origin_country, exchange_rate_usd, duty, product_name, supplier_name, supplier_address, importer], map: "product_icegate_imports_copy_system_id_reg_date_month_year__key")
+  @@index([indian_port], map: "product_icegate_imports_copy_indian_port_idx")
+  @@index([origin_country], map: "product_icegate_imports_copy_origin_country_idx")
+  @@index([system_id], map: "product_icegate_imports_copy_system_id_idx")
+  @@index([unique_product_name], map: "product_icegate_imports_copy_unique_product_name_idx")
+  @@map("product_icegate_imports_copy")
+  @@schema("analytics")
+}
