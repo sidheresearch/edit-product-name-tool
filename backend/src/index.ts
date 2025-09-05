@@ -20,6 +20,9 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
   'https://meghamam-2.onrender.com',
   'https://meghamam-frontend.onrender.com',
   'https://edit-product-name-tool.onrender.com',
+  'https://edit-product-name-tool-1.onrender.com',
+  'https://edit-product-name-tool-frontend.onrender.com',
+  'https://meghamam.onrender.com',
   'https://sidheresearch.github.io'
 ];
 
@@ -32,16 +35,23 @@ app.use(compression());
 // Enhanced CORS configuration for production
 app.use(cors({
   origin: function (origin, callback) {
+    console.log('CORS request from origin:', origin);
+    
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      console.log('CORS: Allowing request with no origin');
+      return callback(null, true);
+    }
     
     // Check if the origin is in the allowed list
     if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log('CORS: Origin found in allowed list');
       return callback(null, true);
     }
     
     // Allow any subdomain of onrender.com for development
     if (origin.endsWith('.onrender.com')) {
+      console.log('CORS: Allowing .onrender.com subdomain');
       return callback(null, true);
     }
     
