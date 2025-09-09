@@ -29,6 +29,8 @@ const ProductImportsTable: React.FC = () => {
   const [pageSize, setPageSize] = useState(50)
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState<DataFilters>({})
+  const [startDate, setStartDate] = useState<string>('')
+  const [endDate, setEndDate] = useState<string>('')
   const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null)
   const [editValue, setEditValue] = useState('')
   const initialEditValue = useRef<string>('')
@@ -43,8 +45,12 @@ const ProductImportsTable: React.FC = () => {
     page: page + 1, // DataGrid uses 0-based, API uses 1-based
     pageSize,
     search,
-    filters,
-  }), [page, pageSize, search, filters])
+    filters: {
+      ...filters,
+      startDate: startDate || undefined,
+      endDate: endDate || undefined,
+    },
+  }), [page, pageSize, search, filters, startDate, endDate])
 
   const { data: queryResponse, isLoading, error, refetch } = useData(queryParams)
   const { data: stats } = useTableStats()
@@ -82,6 +88,16 @@ const ProductImportsTable: React.FC = () => {
       ...prev,
       true_importer_name: value || undefined
     }))
+    setPage(0) // Reset to first page on filter change
+  }, [])
+
+  const handleStartDateChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setStartDate(event.target.value)
+    setPage(0) // Reset to first page on filter change
+  }, [])
+
+  const handleEndDateChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setEndDate(event.target.value)
     setPage(0) // Reset to first page on filter change
   }, [])
 
@@ -338,6 +354,7 @@ const ProductImportsTable: React.FC = () => {
 
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Showing only records with empty product names that need editing. Click on any "Unique Product Name" cell to edit.
+        Use the date filters to narrow down records by registration date.
         <br />
         <strong>Note:</strong> Editing a product name will update ALL records with the same System ID (shown with ×N indicator).
       </Typography>
@@ -355,7 +372,7 @@ const ProductImportsTable: React.FC = () => {
       {/* Search and Filters */}
       <Paper sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={4}>
             <TextField
               fullWidth
               placeholder="Search products, HS codes..."
@@ -366,7 +383,7 @@ const ProductImportsTable: React.FC = () => {
               }}
             />
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={3}>
             <TextField
               fullWidth
               placeholder="Filter by Importer Name..."
@@ -377,7 +394,33 @@ const ProductImportsTable: React.FC = () => {
               size="medium"
             />
           </Grid>
-          <Grid item xs={12} md={2} sx={{ display: 'flex', gap: 1 }}>
+          <Grid item xs={12} md={2}>
+            <TextField
+              fullWidth
+              type="date"
+              label="Start Date"
+              value={startDate}
+              onChange={handleStartDateChange}
+              InputLabelProps={{
+                shrink: true,
+              }}
+              size="medium"
+            />
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <TextField
+              fullWidth
+              type="date"
+              label="End Date"
+              value={endDate}
+              onChange={handleEndDateChange}
+              InputLabelProps={{
+                shrink: true,
+              }}
+              size="medium"
+            />
+          </Grid>
+          <Grid item xs={12} md={1} sx={{ display: 'flex', gap: 1, flexDirection: 'column' }}>
             <Tooltip title="Refresh Data">
               <IconButton onClick={() => refetch()}>
                 <RefreshIcon />
@@ -389,13 +432,70 @@ const ProductImportsTable: React.FC = () => {
               onClick={() => {
                 setFilters({})
                 setSearch('')
+                setStartDate('')
+                setEndDate('')
               }}
-              disabled={Object.keys(filters).length === 0 && !search}
+              disabled={Object.keys(filters).length === 0 && !search && !startDate && !endDate}
+              size="small"
             >
               Clear
             </Button>
           </Grid>
         </Grid>
+        
+        {/* Date Range Presets */}
+        <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <Typography variant="body2" sx={{ alignSelf: 'center', mr: 1, color: 'text.secondary' }}>
+            Quick Date Filters:
+          </Typography>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => {
+              const today = new Date().toISOString().split('T')[0]
+              setStartDate(today)
+              setEndDate(today)
+            }}
+          >
+            Today
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => {
+              const today = new Date()
+              const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+              setStartDate(lastWeek.toISOString().split('T')[0])
+              setEndDate(today.toISOString().split('T')[0])
+            }}
+          >
+            Last 7 Days
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => {
+              const today = new Date()
+              const lastMonth = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+              setStartDate(lastMonth.toISOString().split('T')[0])
+              setEndDate(today.toISOString().split('T')[0])
+            }}
+          >
+            Last 30 Days
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => {
+              const today = new Date()
+              const startOfYear = new Date(today.getFullYear(), 0, 1)
+              setStartDate(startOfYear.toISOString().split('T')[0])
+              setEndDate(today.toISOString().split('T')[0])
+            }}
+          >
+            This Year
+          </Button>
+        </Box>
       </Paper>
 
       {/* Data Grid */}
