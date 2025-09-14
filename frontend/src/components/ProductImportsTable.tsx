@@ -10,7 +10,8 @@ import {
   IconButton,
   Tooltip,
   Alert,
-  Snackbar
+  Snackbar,
+  Autocomplete
 } from '@mui/material'
 import {
   Search as SearchIcon,
@@ -22,6 +23,7 @@ import {
 import { DataGrid, GridColDef } from '@mui/x-data-grid'
 import { useData, useUpdateRecord, useTableStats } from '../hooks/useData'
 import { DataFilters, PaginatedResponse, ProductIcegateImportListItem } from '../types'
+import { searchSuggestions, isValidSuggestion } from '../utils/fuzzySearch'
 
 const ProductImportsTable: React.FC = () => {
   // State management
@@ -110,15 +112,21 @@ const ProductImportsTable: React.FC = () => {
   }, [])
 
   // Input change handler that updates the edit value state
-  const handleEditInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    setEditValue(event.target.value)
-  }, [])
-
   const handleCellEditSave = useCallback(async () => {
     if (!editingCell) return
 
     // Use the editValue state instead of trying to read from ref
     const currentValue = editValue.trim()
+    
+    // Validate that the value is from the suggestions list (unless empty)
+    if (currentValue && !isValidSuggestion(currentValue)) {
+      setSnackbar({
+        open: true,
+        message: 'Please select a valid product name from the suggestions list',
+        severity: 'error'
+      })
+      return
+    }
     
     // Extract system_id from the composite key (format: system_id_reg_date_month_year_hs_code_uniqueIndex)
     const systemId = editingCell.id.split('_')[0]
@@ -270,20 +278,42 @@ const ProductImportsTable: React.FC = () => {
         
         return isEditing ? (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-            <TextField
+            <Autocomplete
               value={editValue}
-              onChange={handleEditInputChange}
+              onChange={(_, newValue) => {
+                if (newValue) {
+                  setEditValue(newValue);
+                }
+              }}
+              onInputChange={(_, newInputValue) => {
+                setEditValue(newInputValue);
+              }}
+              options={searchSuggestions(editValue, 10).map(result => result.suggestion)}
+              freeSolo={false} // Restrict to suggestions only
               size="small"
               fullWidth
-              autoFocus
-              multiline
-              maxRows={3}
-              inputProps={{
-                onKeyDown: (e) => {
-                  // Prevent event bubbling that could cause re-renders
-                  e.stopPropagation()
-                },
-                style: { fontSize: '14px' }
+              autoHighlight
+              disableClearable
+              filterOptions={(options) => options} // Use our own filtering
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  autoFocus
+                  size="small"
+                  inputProps={{
+                    ...params.inputProps,
+                    onKeyDown: (e) => {
+                      // Prevent event bubbling that could cause re-renders
+                      e.stopPropagation();
+                    },
+                    style: { fontSize: '14px' }
+                  }}
+                />
+              )}
+              sx={{ 
+                '& .MuiAutocomplete-option': {
+                  fontSize: '14px'
+                }
               }}
             />
             <IconButton size="small" onClick={handleCellEditSave} disabled={updateMutation.isPending}>
